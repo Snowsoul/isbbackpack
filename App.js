@@ -10,6 +10,7 @@ import React, {Component} from 'react';
 import {Platform, StyleSheet, Text, View} from 'react-native';
 import { BleManager } from 'react-native-ble-plx';
 import Button from 'react-native-button';
+import {decode as atob, encode as btoa} from 'base-64';
 
 const instructions = Platform.select({
   ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
@@ -20,13 +21,12 @@ const instructions = Platform.select({
 
 const UUIDS = {
   IP_ADDRESS: '00000004-94f3-4011-be53-6ac36bf22cf1',
-  ENABLE_PAIRING: '00000002-94f3-4011-be53-6ac36bf22cf1',
   IS_AUTHORISED: '00000001-94f3-4011-be53-6ac36bf22cf1',
-  BIG_DATA: '00000003-94f3-4011-be53-6ac36bf22cf1'
+  BIG_DATA: '00000003-94f3-4011-be53-6ac36bf22cf1',
+  CMD: '00000002-94f3-4011-be53-6ac36bf22cf1'
 }
 
-type Props = {};
-export default class App extends Component<Props> {
+export default class App extends Component {
 
   state = {
     deviceName: '',
@@ -143,7 +143,7 @@ export default class App extends Component<Props> {
 
   onPressPair = async () => {
     this.setState({ pairing: true });
-    const pairingCharacteristic = this.allCharacteristics.find(characteristic => characteristic.uuid === UUIDS.ENABLE_PAIRING);
+    const pairingCharacteristic = this.allCharacteristics.find(characteristic => characteristic.uuid === UUIDS.CMD);
     const isAuthorisedCharacteristic = this.allCharacteristics.find(characteristic => characteristic.uuid === UUIDS.IS_AUTHORISED);
     const bigDataCharacteristic = this.allCharacteristics.find(characteristic => characteristic.uuid === UUIDS.BIG_DATA);
     console.log(isAuthorisedCharacteristic);
@@ -159,8 +159,23 @@ export default class App extends Component<Props> {
     .catch(err => console.error(err));
   }
 
+  turnLedOn = async () => {
+    const cmd = this.allCharacteristics.find(characteristic => characteristic.uuid === UUIDS.CMD);
+
+    if(cmd) {
+      console.log(cmd);
+      try {
+        const response = await cmd.writeWithResponse(btoa('5'));
+        console.log(response);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  }
+
   render() {
     const { connected, deviceName, connecting, finding, found, ready, pairing, requestingIP } = this.state;
+
     return (
       <View style={styles.container}>
         <Text style={styles.welcome}>Backpack App</Text>
@@ -193,6 +208,19 @@ export default class App extends Component<Props> {
             >
               Get IP Address
             </Button>
+            <Button
+              onPress={this.turnLedOn}
+              style={styles.button}
+            >
+              Turn LED On
+            </Button>
+            {/* <Button
+              onPress={this.turnLedOn}
+              style={styles.button}
+              styleDisabled={styles.disabledButton}
+            >
+              TURN LED ON
+            </Button> */}
           </>
         )}
       </View>
